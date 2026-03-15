@@ -33,15 +33,18 @@ bash ~/.openclaw/skills/system-guardian/scripts/safe-restart.sh
 
 流程：
 ```
-校验配置 → 自动备份 → 重启 Gateway → 健康检查 → 失败则自动回滚
+校验配置 → 自动备份(3件套) → 重启 Gateway → 健康检查 → 失败则自动回滚
 ```
 
 详细步骤：
 1. `openclaw config validate` — 配置语法和字段校验
-2. 备份当前配置到 `~/.openclaw/backups/openclaw.json.<timestamp>.bak`
+2. 备份三个关键文件到 `~/.openclaw/backups/`：
+   - `openclaw.json.<timestamp>.bak` — 主配置
+   - `env.<timestamp>.bak` — 环境变量
+   - `ai.openclaw.gateway.plist.<timestamp>.bak` — macOS 开机自启配置
 3. `openclaw gateway restart`
 4. 等待 15 秒，检查 `openclaw gateway status`
-5. 如果 Gateway 不在线：自动恢复备份 → 再次重启 → 再次检查
+5. 如果 Gateway 不在线：自动恢复全部备份 → 再次重启 → 再次检查
 6. 如果仍然失败：报警并保留现场
 
 ### 2. 配置变更防护（Config Guard）

@@ -57,18 +57,37 @@ else
 fi
 
 # ─── Step 3: Backup ───
-log "Step 3/5: 备份当前配置..."
+log "Step 3/5: 备份配置文件..."
 mkdir -p "$BACKUP_DIR"
-cp "$CONFIG" "$BACKUP_FILE"
-ok "备份完成: $BACKUP_FILE"
 
-# Clean old backups (keep latest MAX_BACKUPS)
-BACKUP_COUNT=$(ls -1 "$BACKUP_DIR"/openclaw.json.*.bak 2>/dev/null | wc -l | tr -d ' ')
-if [ "$BACKUP_COUNT" -gt "$MAX_BACKUPS" ]; then
-    EXCESS=$((BACKUP_COUNT - MAX_BACKUPS))
-    ls -1t "$BACKUP_DIR"/openclaw.json.*.bak | tail -n "$EXCESS" | xargs rm -f
-    log "清理旧备份: 删除 $EXCESS 个，保留最近 $MAX_BACKUPS 个"
+# 3a: openclaw.json
+cp "$CONFIG" "$BACKUP_FILE"
+ok "备份 openclaw.json → $(basename "$BACKUP_FILE")"
+
+# 3b: .env
+ENV_BACKUP="${BACKUP_DIR}/env.${TIMESTAMP}.bak"
+if [ -f "$ENV_FILE" ]; then
+    cp "$ENV_FILE" "$ENV_BACKUP"
+    ok "备份 .env → $(basename "$ENV_BACKUP")"
 fi
+
+# 3c: LaunchAgent plist
+PLIST_SRC="${HOME}/Library/LaunchAgents/ai.openclaw.gateway.plist"
+PLIST_BACKUP="${BACKUP_DIR}/ai.openclaw.gateway.plist.${TIMESTAMP}.bak"
+if [ -f "$PLIST_SRC" ]; then
+    cp "$PLIST_SRC" "$PLIST_BACKUP"
+    ok "备份 LaunchAgent plist → $(basename "$PLIST_BACKUP")"
+fi
+
+# Clean old backups (keep latest MAX_BACKUPS sets)
+for pattern in "openclaw.json.*.bak" "env.*.bak" "ai.openclaw.gateway.plist.*.bak"; do
+    BAK_COUNT=$(ls -1 "$BACKUP_DIR"/$pattern 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$BAK_COUNT" -gt "$MAX_BACKUPS" ]; then
+        EXCESS=$((BAK_COUNT - MAX_BACKUPS))
+        ls -1t "$BACKUP_DIR"/$pattern | tail -n "$EXCESS" | xargs rm -f
+        log "清理旧备份 ($pattern): 删除 $EXCESS 个"
+    fi
+done
 
 # ─── Step 4: Restart ───
 log "Step 4/5: 重启 Gateway..."
@@ -89,9 +108,17 @@ fi
 
 # ─── Rollback ───
 fail "Gateway 未正常启动！开始回滚..."
-warn "恢复备份: $BACKUP_FILE"
+warn "恢复 openclaw.json 备份..."
 cp "$BACKUP_FILE" "$CONFIG"
-log "备份已恢复，尝试再次重启..."
+if [ -f "$ENV_BACKUP" ]; then
+    warn "恢复 .env 备份..."
+    cp "$ENV_BACKUP" "$ENV_FILE"
+fi
+if [ -f "$PLIST_BACKUP" ]; then
+    warn "恢复 LaunchAgent plist 备份..."
+    cp "$PLIST_BACKUP" "$PLIST_SRC"
+fi
+log "所有备份已恢复，尝试再次重启..."
 openclaw gateway restart 2>&1
 sleep "$RETRY_WAIT"
 
