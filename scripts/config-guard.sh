@@ -54,23 +54,34 @@ done
 
 # ─── 4. Environment variable references ───
 info "检查环境变量引用..."
-REFS=$(grep -oE '\$\{[A-Z_]+\}' "$CONFIG" 2>/dev/null | sort -u | sed 's/\${\(.*\)}/\1/')
-MISSING=0
-if [ -f "$ENV_FILE" ]; then
-    for var in $REFS; do
-        if grep -q "^${var}=" "$ENV_FILE" 2>/dev/null; then
-            ok "  \${$var} → 已定义"
-        else
-            warn "  \${$var} → 未在 .env 中定义"
-            MISSING=$((MISSING + 1))
+REFS=$(grep -oE '\$\{[A-Z_]+\}' "$CONFIG" 2>/dev/null | sort -u | sed 's/\${\(.*\)}/\1/') || true
+if [ -n "$REFS" ]; then
+    # env-based mode: config uses ${VAR} references
+    info "检测到 env-based 配置模式"
+    if [ -f "$ENV_FILE" ]; then
+        MISSING=0
+        for var in $REFS; do
+            if grep -q "^${var}=" "$ENV_FILE" 2>/dev/null; then
+                ok "  \${$var} → 已定义"
+            else
+                warn "  \${$var} → 未在 .env 中定义"
+                MISSING=$((MISSING + 1))
+            fi
+        done
+        if [ "$MISSING" -gt 0 ]; then
+            WARNINGS=$((WARNINGS + MISSING))
         fi
-    done
-    if [ "$MISSING" -gt 0 ]; then
-        WARNINGS=$((WARNINGS + MISSING))
+    else
+        fail "配置中引用了 \${VAR} 变量，但 .env 文件不存在！"
+        fail "建议：创建 ${ENV_FILE} 并定义所需变量，或改用 openclaw.json 内联写法"
+        ERRORS=$((ERRORS + 1))
     fi
 else
-    warn ".env 文件不存在，无法校验环境变量"
-    WARNINGS=$((WARNINGS + 1))
+    # inline mode: no ${VAR} references, keys are directly in openclaw.json
+    ok "配置使用内联模式（无 \${VAR} 引用）"
+    if [ -f "$ENV_FILE" ]; then
+        info ".env 文件存在但未被配置引用（仅作备份用）"
+    fi
 fi
 
 # ─── 5. Port conflict check ───

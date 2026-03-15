@@ -37,23 +37,33 @@ fi
 # ─── Step 2: Check env vars ───
 log "Step 2/5: 检查环境变量引用..."
 ENV_FILE="${OPENCLAW_DIR}/.env"
-MISSING_VARS=()
-if [ -f "$ENV_FILE" ]; then
-    # Extract ${VAR} references from config
-    REFS=$(grep -oE '\$\{[A-Z_]+\}' "$CONFIG" 2>/dev/null | sort -u | sed 's/\${\(.*\)}/\1/')
-    for var in $REFS; do
-        if ! grep -q "^${var}=" "$ENV_FILE" 2>/dev/null; then
-            MISSING_VARS+=("$var")
+# Detect if config uses ${VAR} references (env-based) or inline values (default)
+VAR_REFS=$(grep -oE '\$\{[A-Z_]+\}' "$CONFIG" 2>/dev/null | sort -u | sed 's/\${\(.*\)}/\1/') || true
+if [ -n "$VAR_REFS" ]; then
+    # Config uses env var references → need .env file
+    if [ -f "$ENV_FILE" ]; then
+        MISSING_VARS=()
+        for var in $VAR_REFS; do
+            if ! grep -q "^${var}=" "$ENV_FILE" 2>/dev/null; then
+                MISSING_VARS+=("$var")
+            fi
+        done
+        if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+            warn "以下环境变量在 .env 中未定义: ${MISSING_VARS[*]}"
+            warn "Gateway 可能无法正确读取这些值"
+        else
+            ok "所有环境变量引用已确认 (env-based 模式)"
         fi
-    done
-    if [ ${#MISSING_VARS[@]} -gt 0 ]; then
-        warn "以下环境变量在 .env 中未定义: ${MISSING_VARS[*]}"
-        warn "Gateway 可能无法正确读取这些值"
     else
-        ok "所有环境变量引用已确认"
+        warn "配置中使用了 \${VAR} 引用，但 .env 文件不存在！"
+        warn "建议：创建 ${ENV_FILE} 或改用 openclaw.json 内联配置"
     fi
 else
-    warn ".env 文件不存在"
+    # Config uses inline values (default mode) → no .env needed
+    ok "配置使用内联模式（无 \${VAR} 引用）"
+    if [ -f "$ENV_FILE" ]; then
+        ok ".env 文件存在（可选备份）"
+    fi
 fi
 
 # ─── Step 3: Backup ───

@@ -58,9 +58,9 @@ bash ~/.openclaw/skills/system-guardian/scripts/config-guard.sh check
 检查项目：
 - JSON 语法是否合法
 - 必需字段是否存在（gateway, channels, agents）
-- 环境变量引用 `${VAR}` 是否在 .env 中有定义
+- 自动检测配置模式：**env-based**（使用 `${VAR}` 引用 .env）或 **inline**（密钥直接写在 openclaw.json 中），两种都支持
 - 端口冲突检查
-- 模型 ID 格式是否合法
+- 磁盘空间检查
 
 ### 3. 健康巡检（Health Patrol）
 
