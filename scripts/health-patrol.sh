@@ -144,9 +144,9 @@ fi
 # ─── 7. Cron Jobs ───
 info "7/8 Cron 任务状态"
 CRON_OUTPUT=$(openclaw cron list 2>&1)
-CRON_COUNT=$(echo "$CRON_OUTPUT" | grep -c "enabled" 2>/dev/null || echo "0")
+CRON_COUNT=$(echo "$CRON_OUTPUT" | grep -c "enabled" 2>/dev/null) || CRON_COUNT=0
 ok "活跃 Cron 任务: ${CRON_COUNT} 个"
-echo "$CRON_OUTPUT" | grep -E "name|enabled|next" 2>/dev/null | head -20
+echo "$CRON_OUTPUT" | { grep -E "name|enabled|next" 2>/dev/null || true; } | head -20
 
 # ─── 8. Temp Files Cleanup ───
 info "8/8 临时文件"
