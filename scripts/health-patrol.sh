@@ -39,11 +39,11 @@ if echo "$GW_STATUS" | grep -q "running"; then
     if [ -n "$GW_PID" ]; then
         MEM_MB=$(ps -o rss= -p "$GW_PID" 2>/dev/null | awk '{printf "%.0f", $1/1024}')
         if [ -n "$MEM_MB" ]; then
-            if [ "$MEM_MB" -gt 1024 ]; then
+            if [ "$MEM_MB" -gt 1536 ]; then
+                critical "Gateway 内存占用 ${MEM_MB}MB (>1.5GB)，建议立即重启"
+                CRITICALS=$((CRITICALS + 1))
+            elif [ "$MEM_MB" -gt 1024 ]; then
                 warn "Gateway 内存占用 ${MEM_MB}MB (>1GB)"
-                WARNINGS=$((WARNINGS + 1))
-            elif [ "$MEM_MB" -gt 512 ]; then
-                warn "Gateway 内存占用 ${MEM_MB}MB (>512MB)"
                 WARNINGS=$((WARNINGS + 1))
             else
                 ok "Gateway 运行中 (pid ${GW_PID}, ${MEM_MB}MB)"
