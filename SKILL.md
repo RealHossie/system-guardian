@@ -1,6 +1,6 @@
 ---
 name: 金刚罩
-version: 1.0.0
+version: 1.1.0
 description: "金刚罩 — OpenClaw 系统守护：配置安全（pre-validate + 自动备份 + 失败回滚）、健康巡检、资源优化、故障自愈。刀枪不入，百毒不侵。"
 author: 主谋
 emoji: 🔱
@@ -68,14 +68,20 @@ bash ~/.openclaw/skills/system-guardian/scripts/config-guard.sh check
 bash ~/.openclaw/skills/system-guardian/scripts/health-patrol.sh
 ```
 
-检查项目：
-- Gateway 进程状态 + 内存占用
-- 磁盘空间（总量、可用、session 文件大小）
-- Session 文件累积（清理过期 session）
-- 内存数据库大小
-- /tmp 临时文件清理
-- Cron 任务状态（是否有失败的）
-- 备份文件管理（保留最近 10 个，清理更旧的）
+检查项目（13 项）：
+1. Gateway 进程状态 + 内存占用（>1GB 警告，>1.5GB 严重）
+2. 磁盘空间（总量、可用）
+3. OpenClaw 目录空间细分
+4. Session 文件累积
+5. 记忆数据库大小
+6. 备份文件管理
+7. **Cron 任务健康**：检测连续失败的任务并告警
+8. **插件健康检查**：检查所有已安装插件的状态和加载情况
+9. **配置变更审计**：检测 openclaw.json 变更，记录 diff 到审计日志
+10. 临时文件清理
+11. **自动清理**：Session >14天自动删、备份保留最近10份、日志保留7天
+12. **性能基线记录**：每次巡检记录指标到 CSV，可看趋势和泄漏检测
+13. 审计日志管理（超过 1MB 自动轮转）
 
 ### 4. 资源优化建议（Resource Advisor）
 
@@ -117,10 +123,15 @@ bash ~/.openclaw/skills/system-guardian/scripts/health-patrol.sh
 }
 ```
 
-## 演进计划
+## 数据文件
 
-- v1.0: 安全重启 + 配置防护 + 健康巡检
-- v1.1: 资源优化建议 + 自动清理策略
-- v1.2: 故障模式库（常见问题 → 自动修复）
-- v1.3: 性能基线记录 + 异常检测
-- v2.0: 多节点健康管理
+巡检产生的数据存储在 `~/.openclaw/data/system-guardian/`：
+- `baseline.csv` — 性能基线时序数据（Gateway 内存、磁盘、Session 数等）
+- `config-audit.log` — 配置变更审计日志（时间 + hash + diff）
+- `.config-hash` / `.config-snapshot.json` — 用于变更检测
+
+## 版本历史
+
+- v1.0: 安全重启 + 配置防护 + 健康巡检（8项）
+- v1.1: Cron 健康监控 + 插件检查 + 配置审计 + 自动清理 + 性能基线（13项）
+- v2.0: 多节点健康管理（计划中）
