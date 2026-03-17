@@ -128,17 +128,18 @@ bash ~/.openclaw/skills/system-guardian/scripts/health-patrol.sh
 
 ## 📦 安装
 
-### 方式一：ClawHub 安装（推荐）
-
-```bash
-clawhub install system-guardian
-```
-
-### 方式二：手动安装
+### 方式一：Git Clone（推荐）
 
 ```bash
 cd ~/.openclaw/skills
 git clone https://github.com/RealHossie/system-guardian.git
+```
+
+### 方式二：ClawHub（即将上架）
+
+```bash
+# 上架后可用：
+clawhub install system-guardian
 ```
 
 ### 前置依赖
